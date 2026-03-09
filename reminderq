@@ -1,0 +1,472 @@
+import { useState, useEffect, useRef } from "react";
+
+const priorityConfig = {
+  high: {
+    color: "#ff4d4d", glow: "rgba(255,77,77,0.7)", label: "High",
+    shape: (size = 14) => (
+      <svg width={size} height={size} viewBox="0 0 14 14">
+        <polygon points="7,1 13,13 1,13" fill="#ff4d4d" style={{ filter: "drop-shadow(0 0 4px rgba(255,77,77,0.8))" }} />
+      </svg>
+    ),
+  },
+  medium: {
+    color: "#f5c542", glow: "rgba(245,197,66,0.7)", label: "Medium",
+    shape: (size = 14) => (
+      <svg width={size} height={size} viewBox="0 0 14 14">
+        <rect x="1" y="1" width="12" height="12" fill="#f5c542" style={{ filter: "drop-shadow(0 0 4px rgba(245,197,66,0.8))" }} />
+      </svg>
+    ),
+  },
+  low: {
+    color: "#4dff91", glow: "rgba(77,255,145,0.7)", label: "Low",
+    shape: (size = 14) => (
+      <svg width={size} height={size} viewBox="0 0 14 14">
+        <circle cx="7" cy="7" r="6" fill="#4dff91" style={{ filter: "drop-shadow(0 0 4px rgba(77,255,145,0.8))" }} />
+      </svg>
+    ),
+  },
+};
+
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function getDaysInMonth(m, y) { return new Date(y, m + 1, 0).getDate(); }
+function getFirstDay(m, y) { return new Date(y, m, 1).getDay(); }
+
+function Calendar({ selectedDate, onSelect, year, month, onPrev, onNext }) {
+  const days = getDaysInMonth(month, year);
+  const firstDay = getFirstDay(month, year);
+  const today = new Date();
+  const cells = [...Array(firstDay).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
+  return (
+    <div style={{ background: "rgba(8,16,32,0.98)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 18, padding: "14px 12px", backdropFilter: "blur(20px)", animation: "slideUp 0.2s ease" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <button onClick={onPrev} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontSize: 18, cursor: "pointer", padding: "0 6px" }}>‹</button>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{MONTHS[month]} {year}</span>
+        <button onClick={onNext} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontSize: 18, cursor: "pointer", padding: "0 6px" }}>›</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+        {DAYS.map(d => <div key={d} style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 10, fontWeight: 600 }}>{d}</div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />;
+          const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          const isSel = day === selectedDate;
+          return (
+            <div key={i} onClick={() => onSelect(day)} style={{
+              textAlign: "center", padding: "5px 0", borderRadius: 8, fontSize: 12,
+              fontWeight: isSel || isToday ? 700 : 400, cursor: "pointer",
+              color: isSel ? "#fff" : isToday ? "rgba(130,200,255,1)" : "rgba(255,255,255,0.65)",
+              background: isSel ? "linear-gradient(135deg,rgba(100,180,255,0.45),rgba(80,140,255,0.3))" : isToday ? "rgba(100,180,255,0.1)" : "transparent",
+              border: isToday && !isSel ? "1px solid rgba(100,180,255,0.3)" : "1px solid transparent",
+            }}>{day}</div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DigitalTimePicker({ value, onChange }) {
+  const parsed = value.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  const [hours, setHours] = useState(parsed ? parseInt(parsed[1]) : 12);
+  const [minutes, setMinutes] = useState(parsed ? parseInt(parsed[2]) : 0);
+  const [ampm, setAmpm] = useState(parsed?.[3]?.toUpperCase() || "AM");
+  useEffect(() => { onChange(`${String(hours).padStart(2,"0")}:${String(minutes).padStart(2,"0")} ${ampm}`); }, [hours, minutes, ampm]);
+  const btn = { background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", borderRadius: 6, width: 22, height: 22, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" };
+  const seg = { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "6px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={seg}>
+        <button style={btn} onClick={() => setHours(h => h >= 12 ? 1 : h + 1)}>▲</button>
+        <span style={{ color: "#fff", fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 28, textAlign: "center", fontFamily: "'Courier New',monospace" }}>{String(hours).padStart(2,"0")}</span>
+        <button style={btn} onClick={() => setHours(h => h <= 1 ? 12 : h - 1)}>▼</button>
+      </div>
+      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 22, fontWeight: 700 }}>:</span>
+      <div style={seg}>
+        <button style={btn} onClick={() => setMinutes(m => (m + 5) % 60)}>▲</button>
+        <span style={{ color: "#fff", fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 28, textAlign: "center", fontFamily: "'Courier New',monospace" }}>{String(minutes).padStart(2,"0")}</span>
+        <button style={btn} onClick={() => setMinutes(m => m === 0 ? 55 : m - 5)}>▼</button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {["AM","PM"].map(p => (
+          <button key={p} onClick={() => setAmpm(p)} style={{ background: ampm === p ? "linear-gradient(135deg,rgba(100,180,255,0.4),rgba(80,140,255,0.25))" : "rgba(255,255,255,0.06)", border: `1px solid ${ampm===p?"rgba(100,180,255,0.4)":"rgba(255,255,255,0.1)"}`, color: ampm === p ? "#fff" : "rgba(255,255,255,0.4)", borderRadius: 8, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>{p}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NotificationBanner({ notif, onDone, onDelay, onDismiss }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { setTimeout(() => setVisible(true), 50); }, []);
+  const pc = priorityConfig[notif.priority];
+  return (
+    <div style={{
+      position: "fixed", top: visible ? 16 : -140, left: "50%", transform: "translateX(-50%)",
+      width: 340, zIndex: 9999,
+      background: "rgba(8,18,36,0.97)",
+      border: `1px solid ${pc.color}55`,
+      borderRadius: 20,
+      padding: "14px 16px",
+      backdropFilter: "blur(30px)",
+      boxShadow: `0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px ${pc.color}22`,
+      transition: "top 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ marginTop: 2 }}>{pc.shape(20)}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>REMINDER</span>
+            <button onClick={onDismiss} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", fontSize: 16, padding: 0 }}>×</button>
+          </div>
+          <div style={{ color: "#fff", fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{notif.label}</div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "'Courier New',monospace", marginBottom: 10 }}>{notif.time}</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onDone} style={{
+              flex: 1, background: "linear-gradient(135deg,rgba(77,255,145,0.25),rgba(50,200,100,0.15))",
+              border: "1px solid rgba(77,255,145,0.35)", color: "#4dff91",
+              borderRadius: 10, padding: "8px", cursor: "pointer", fontSize: 12, fontWeight: 700,
+            }}>✓ Done</button>
+            <button onClick={onDelay} style={{
+              flex: 1, background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)",
+              borderRadius: 10, padding: "8px", cursor: "pointer", fontSize: 12, fontWeight: 600,
+            }}>⏱ Delay 5m</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HistoryPanel({ history, onClose }) {
+  return (
+    <div style={{
+      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+      background: "linear-gradient(170deg,#0e1c2f 0%,#0a1220 60%,#081018 100%)",
+      zIndex: 200, borderRadius: 44,
+      display: "flex", flexDirection: "column",
+      animation: "slideUp 0.3s ease",
+    }}>
+      <div style={{ padding: "50px 24px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h2 style={{ color: "#fff", fontSize: 22, fontWeight: 700, margin: 0 }}>History</h2>
+        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)", borderRadius: 10, width: 32, height: 32, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+      </div>
+      {history.length === 0 ? (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          <span style={{ fontSize: 36 }}>📭</span>
+          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 14 }}>No history yet</span>
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 24px" }}>
+          {history.map((h, i) => {
+            const pc = priorityConfig[h.priority];
+            return (
+              <div key={h.id} style={{
+                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 14, padding: "12px 14px", marginBottom: 8,
+                display: "flex", alignItems: "center", gap: 12,
+                animation: `slideIn 0.3s ease ${i*0.05}s both`,
+              }}>
+                <div>{pc.shape(16)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#fff", fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{h.label}</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Courier New',monospace" }}>
+                    {h.date} · {h.time}
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: 0.5, padding: "3px 8px", borderRadius: 6,
+                  background: h.status === "done" ? "rgba(77,255,145,0.12)" : "rgba(245,197,66,0.12)",
+                  color: h.status === "done" ? "#4dff91" : "#f5c542",
+                  border: `1px solid ${h.status === "done" ? "rgba(77,255,145,0.25)" : "rgba(245,197,66,0.25)"}`,
+                }}>{h.status === "done" ? "DONE" : "DELAYED"}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ReminderApp() {
+  const [reminders, setReminders] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showCal, setShowCal] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newTime, setNewTime] = useState("12:00 AM");
+  const [newPriority, setNewPriority] = useState("medium");
+  const [clockTime, setClockTime] = useState(new Date());
+  const [activeNotif, setActiveNotif] = useState(null);
+  const notifTimeout = useRef(null);
+
+  const now = new Date();
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth());
+  const [selectedDay, setSelectedDay] = useState(now.getDate());
+
+  useEffect(() => {
+    const tick = setInterval(() => setClockTime(new Date()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // Check reminders every 30 seconds for time match (demo: also allow manual trigger)
+  useEffect(() => {
+    const check = setInterval(() => {
+      const now = new Date();
+      const hh = now.getHours();
+      const mm = now.getMinutes();
+      const ampm = hh >= 12 ? "PM" : "AM";
+      const h12 = hh % 12 || 12;
+      const timeStr = `${String(h12).padStart(2,"0")}:${String(mm).padStart(2,"0")} ${ampm}`;
+      const match = reminders.find(r => !r.isNow && r.time === timeStr);
+      if (match && !activeNotif) setActiveNotif(match);
+    }, 30000);
+    return () => clearInterval(check);
+  }, [reminders, activeNotif]);
+
+  const triggerNotif = (reminder) => setActiveNotif(reminder);
+
+  const handleDone = () => {
+    if (!activeNotif) return;
+    const dateStr = `${MONTHS[calMonth]} ${selectedDay}, ${calYear}`;
+    setHistory(h => [{ ...activeNotif, status: "done", date: dateStr }, ...h]);
+    setReminders(r => {
+      const filtered = r.filter(x => x.id !== activeNotif.id);
+      if (!filtered.find(x => x.isNow) && filtered.length > 0) filtered[0] = { ...filtered[0], isNow: true };
+      return filtered;
+    });
+    setActiveNotif(null);
+  };
+
+  const handleDelay = () => {
+    if (!activeNotif) return;
+    const dateStr = `${MONTHS[calMonth]} ${selectedDay}, ${calYear}`;
+    setHistory(h => [{ ...activeNotif, status: "delayed", date: dateStr }, ...h]);
+    setReminders(r => r.filter(x => x.id !== activeNotif.id));
+    setActiveNotif(null);
+  };
+
+  const nowReminder = reminders.find(r => r.isNow) || null;
+  const upcoming = reminders.filter(r => !r.isNow);
+
+  const handleAdd = () => {
+    if (!newLabel.trim()) return;
+    const isFirst = reminders.length === 0;
+    const rem = { id: Date.now(), time: newTime, label: newLabel, priority: newPriority, isNow: isFirst };
+    setReminders(prev => [...prev, rem]);
+    setNewLabel(""); setNewTime("12:00 AM"); setNewPriority("medium");
+    setShowAdd(false);
+  };
+
+  const handleDelete = (id) => {
+    setReminders(prev => {
+      const filtered = prev.filter(r => r.id !== id);
+      if (!filtered.find(r => r.isNow) && filtered.length > 0) filtered[0] = { ...filtered[0], isNow: true };
+      return filtered;
+    });
+  };
+
+  const handleSetNow = (id) => setReminders(prev => prev.map(r => ({ ...r, isNow: r.id === id })));
+
+  const displayTime = clockTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg,#0a0f1e 0%,#0d1a2e 50%,#0a1520 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif" }}>
+
+      {/* Notification banner */}
+      {activeNotif && (
+        <NotificationBanner
+          notif={activeNotif}
+          onDone={handleDone}
+          onDelay={handleDelay}
+          onDismiss={() => setActiveNotif(null)}
+        />
+      )}
+
+      <div style={{ width: 360, minHeight: 720, background: "linear-gradient(170deg,#0e1c2f 0%,#0a1220 60%,#081018 100%)", borderRadius: 44, border: "1.5px solid rgba(255,255,255,0.08)", boxShadow: "0 40px 120px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.1)", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
+
+        {/* History panel overlay */}
+        {showHistory && <HistoryPanel history={history} onClose={() => setShowHistory(false)} />}
+
+        {/* Status bar */}
+        <div style={{ padding: "14px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "'Courier New',monospace", letterSpacing: 0.5 }}>{displayTime}</span>
+          <div style={{ width: 80, height: 20, background: "#000", borderRadius: 12, border: "1.5px solid rgba(255,255,255,0.1)" }} />
+          <svg width="17" height="11" viewBox="0 0 17 11"><rect x=".5" y=".5" width="15" height="10" rx="3" stroke="white" strokeOpacity=".35" fill="none"/><rect x="16" y="3.5" width="1" height="4" rx=".5" fill="white" opacity=".4"/><rect x="2" y="2" width="10" height="7" rx="1.5" fill="white"/></svg>
+        </div>
+
+        {/* Header row */}
+        <div style={{ padding: "10px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ color: "#fff", fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: "-0.5px" }}>Reminder</h1>
+          {/* History button */}
+          <button onClick={() => setShowHistory(true)} style={{
+            background: history.length > 0 ? "rgba(100,180,255,0.12)" : "rgba(255,255,255,0.06)",
+            border: `1px solid ${history.length > 0 ? "rgba(100,180,255,0.3)" : "rgba(255,255,255,0.1)"}`,
+            color: history.length > 0 ? "rgba(130,200,255,0.9)" : "rgba(255,255,255,0.4)",
+            borderRadius: 10, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600,
+            display: "flex", alignItems: "center", gap: 5,
+          }}>
+            <span style={{ fontSize: 13 }}>🕐</span> History
+            {history.length > 0 && (
+              <span style={{ background: "rgba(100,180,255,0.3)", borderRadius: 8, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>{history.length}</span>
+            )}
+          </button>
+        </div>
+
+        {/* Calendar pill */}
+        <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 0", position: "relative" }}>
+          <div onClick={() => setShowCal(s => !s)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "7px 20px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", backdropFilter: "blur(10px)" }}>
+            <span style={{ color: "#fff", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>{MONTHS[calMonth].toUpperCase()} {selectedDay}, {calYear}</span>
+            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>{showCal ? "▴" : "▾"}</span>
+          </div>
+          {showCal && (
+            <div style={{ position: "absolute", top: "calc(100% + 6px)", zIndex: 100, width: 290, left: "50%", transform: "translateX(-50%)" }}>
+              <Calendar
+                selectedDate={selectedDay}
+                onSelect={(d) => { setSelectedDay(d); setShowCal(false); }}
+                year={calYear} month={calMonth}
+                onPrev={() => { if (calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1); }}
+                onNext={() => { if (calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1); }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* NOW card (no bubble) */}
+        <div style={{ margin: "16px 20px 0" }}>
+          {nowReminder ? (
+            <div style={{
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${priorityConfig[nowReminder.priority].color}44`,
+              borderRadius: 18, padding: "16px 18px",
+              backdropFilter: "blur(20px)",
+              boxShadow: `0 0 30px ${priorityConfig[nowReminder.priority].color}18`,
+              display: "flex", alignItems: "center", gap: 14,
+            }}>
+              <div>{priorityConfig[nowReminder.priority].shape(28)}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "rgba(180,210,255,0.6)", fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>NOW</div>
+                <div style={{ color: "#fff", fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{nowReminder.label}</div>
+                <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "'Courier New',monospace", marginTop: 3 }}>{nowReminder.time}</div>
+              </div>
+              <button onClick={() => triggerNotif(nowReminder)} style={{
+                background: "rgba(77,255,145,0.1)", border: "1px solid rgba(77,255,145,0.25)",
+                color: "#4dff91", borderRadius: 10, padding: "6px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700,
+              }}>Ring</button>
+            </div>
+          ) : (
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, padding: "20px", textAlign: "center" }}>
+              <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 28, marginBottom: 6 }}>✦</div>
+              <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>No active reminder</div>
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming list */}
+        <div style={{ flex: 1, padding: "12px 20px 0", overflowY: "auto" }}>
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 10, padding: "0 2px" }}>
+            {Object.entries(priorityConfig).map(([key, pc]) => (
+              <div key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                {pc.shape(10)}
+                <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{pc.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {upcoming.map((r, i) => {
+              const pc = priorityConfig[r.priority];
+              return (
+                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, animation: `slideIn 0.35s ease ${i*0.07}s both` }}>
+                  <div style={{ flexShrink: 0 }}>{pc.shape(14)}</div>
+                  <div
+                    onClick={() => handleSetNow(r.id)}
+                    style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "10px 14px", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "background 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  >
+                    <div>
+                      <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "'Courier New',monospace", marginBottom: 2 }}>{r.time}</div>
+                      <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{r.label}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={e => { e.stopPropagation(); triggerNotif(r); }} style={{ background: "rgba(100,180,255,0.1)", border: "1px solid rgba(100,180,255,0.2)", color: "rgba(130,200,255,0.8)", width: 26, height: 26, borderRadius: 8, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>🔔</button>
+                      <button onClick={e => { e.stopPropagation(); handleDelete(r.id); }} style={{ background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.2)", color: "rgba(255,120,120,0.8)", width: 26, height: 26, borderRadius: 8, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {reminders.length === 0 && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <span style={{ color: "rgba(255,255,255,0.18)", fontSize: 13 }}>Tap + to add your first reminder</span>
+            </div>
+          )}
+        </div>
+
+        {/* Add panel */}
+        {showAdd && (
+          <div style={{ margin: "10px 16px", background: "rgba(8,16,32,0.97)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 18, padding: "16px", backdropFilter: "blur(20px)", animation: "slideUp 0.25s ease" }}>
+            <input
+              value={newLabel} onChange={e => setNewLabel(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAdd()}
+              placeholder="Reminder title..." autoFocus
+              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "#fff", fontSize: 14, outline: "none", marginBottom: 12, boxSizing: "border-box" }}
+            />
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 600, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>Set Time</div>
+              <DigitalTimePicker value={newTime} onChange={setNewTime} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 600, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>Priority</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {Object.entries(priorityConfig).map(([key, pc]) => (
+                  <button key={key} onClick={() => setNewPriority(key)} style={{
+                    flex: 1, background: newPriority === key ? `${pc.color}22` : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${newPriority === key ? pc.color : "rgba(255,255,255,0.1)"}`,
+                    color: newPriority === key ? pc.color : "rgba(255,255,255,0.4)",
+                    borderRadius: 10, padding: "8px 0", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.15s",
+                  }}>
+                    {pc.shape(12)}
+                    {pc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { setShowAdd(false); setNewLabel(""); setNewTime("12:00 AM"); }} style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", borderRadius: 10, padding: "10px", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+              <button onClick={handleAdd} style={{ flex: 2, background: "linear-gradient(135deg,rgba(100,180,255,0.35),rgba(80,140,255,0.22))", border: "1px solid rgba(100,180,255,0.35)", color: "#fff", borderRadius: 10, padding: "10px", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Add Reminder</button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom bar */}
+        <div style={{ padding: "8px 16px 28px", display: "flex", gap: 10, alignItems: "center" }}>
+          <button onClick={() => setShowAdd(s => !s)} style={{ width: 38, height: 38, borderRadius: 12, background: showAdd ? "linear-gradient(135deg,rgba(100,180,255,0.4),rgba(80,140,255,0.25))" : "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>{showAdd ? "−" : "+"}</button>
+          <div style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, flex: 1 }}>Type a reminder or tap to speak...</span>
+            <button style={{ background: "rgba(100,180,255,0.15)", border: "1px solid rgba(100,180,255,0.2)", borderRadius: 10, width: 28, height: 28, color: "rgba(150,200,255,0.8)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>🎤</button>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        * { box-sizing:border-box; }
+        input::placeholder { color:rgba(255,255,255,0.3); }
+        ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+      `}</style>
+    </div>
+  );
+}
